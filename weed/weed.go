@@ -3,8 +3,6 @@ package main
 import (
 	"embed"
 	"fmt"
-	weed_server "github.com/chrislusf/seaweedfs/weed/server"
-	flag "github.com/chrislusf/seaweedfs/weed/util/fla9"
 	"io"
 	"io/fs"
 	"math/rand"
@@ -15,6 +13,9 @@ import (
 	"time"
 	"unicode"
 	"unicode/utf8"
+
+	weed_server "github.com/chrislusf/seaweedfs/weed/server"
+	flag "github.com/chrislusf/seaweedfs/weed/util/fla9"
 
 	"github.com/chrislusf/seaweedfs/weed/command"
 	"github.com/chrislusf/seaweedfs/weed/glog"
@@ -58,6 +59,7 @@ func main() {
 		usage()
 	}
 
+	//weed help
 	if args[0] == "help" {
 		help(args[1:])
 		for _, cmd := range commands {
@@ -69,12 +71,14 @@ func main() {
 		return
 	}
 
+	//其他weed指令
 	for _, cmd := range commands {
 		if cmd.Name() == args[0] && cmd.Run != nil {
 			cmd.Flag.Usage = func() { cmd.Usage() }
 			cmd.Flag.Parse(args[1:])
 			args = cmd.Flag.Args()
 			IsDebug = cmd.IsDebug
+			//执行该指令的函数
 			if !cmd.Run(cmd, args) {
 				fmt.Fprintf(os.Stderr, "\n")
 				cmd.Flag.Usage()

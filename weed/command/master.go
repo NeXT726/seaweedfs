@@ -1,15 +1,16 @@
 package command
 
 import (
-	"github.com/chrislusf/raft/protobuf"
-	stats_collect "github.com/chrislusf/seaweedfs/weed/stats"
-	"github.com/gorilla/mux"
-	"google.golang.org/grpc/reflection"
 	"net/http"
 	"os"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/chrislusf/raft/protobuf"
+	stats_collect "github.com/chrislusf/seaweedfs/weed/stats"
+	"github.com/gorilla/mux"
+	"google.golang.org/grpc/reflection"
 
 	"github.com/chrislusf/seaweedfs/weed/util/grace"
 
@@ -17,7 +18,7 @@ import (
 	"github.com/chrislusf/seaweedfs/weed/pb"
 	"github.com/chrislusf/seaweedfs/weed/pb/master_pb"
 	"github.com/chrislusf/seaweedfs/weed/security"
-	"github.com/chrislusf/seaweedfs/weed/server"
+	weed_server "github.com/chrislusf/seaweedfs/weed/server"
 	"github.com/chrislusf/seaweedfs/weed/storage/backend"
 	"github.com/chrislusf/seaweedfs/weed/util"
 )
@@ -59,6 +60,7 @@ func init() {
 	// m.pulseSeconds = cmdMaster.Flag.Int("pulseSeconds", 5, "number of seconds between heartbeats")
 	m.defaultReplication = cmdMaster.Flag.String("defaultReplication", "", "Default replication type if not specified.")
 	m.garbageThreshold = cmdMaster.Flag.Float64("garbageThreshold", 0.3, "threshold to vacuum and reclaim spaces")
+	//逗号分隔有写入权限的IP，如果为空则无限制
 	m.whiteList = cmdMaster.Flag.String("whiteList", "", "comma separated Ip addresses having write permission. No limit if empty.")
 	m.disableHttp = cmdMaster.Flag.Bool("disableHttp", false, "disable http requests, only gRPC operations are allowed.")
 	m.metricsAddress = cmdMaster.Flag.String("metrics.address", "", "Prometheus gateway address <host>:<port>")
@@ -91,6 +93,7 @@ func runMaster(cmd *Command, args []string) bool {
 
 	grace.SetupProfiling(*masterCpuProfile, *masterMemProfile)
 
+	//创建文件夹存储元数据（meta data）
 	parent, _ := util.FullPath(*m.metaFolder).DirAndName()
 	if util.FileExists(string(parent)) && !util.FileExists(*m.metaFolder) {
 		os.MkdirAll(*m.metaFolder, 0755)

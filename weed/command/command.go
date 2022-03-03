@@ -2,11 +2,13 @@ package command
 
 import (
 	"fmt"
-	flag "github.com/chrislusf/seaweedfs/weed/util/fla9"
 	"os"
 	"strings"
+
+	flag "github.com/chrislusf/seaweedfs/weed/util/fla9"
 )
 
+//weed支持的指令列表
 var Commands = []*Command{
 	cmdAutocomplete,
 	cmdUnautocomplete,
