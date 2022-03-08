@@ -23,6 +23,7 @@ import (
 	"github.com/chrislusf/seaweedfs/weed/util"
 )
 
+//全局变量 m，表示Master的一系列参数
 var (
 	m MasterOptions
 )
@@ -120,6 +121,7 @@ func startMaster(masterOption MasterOptions, masterWhiteList []string) {
 
 	backend.LoadConfiguration(util.GetViper())
 
+	//GRPC端口设置
 	if *masterOption.portGrpc == 0 {
 		*masterOption.portGrpc = 10000 + *masterOption.port
 	}

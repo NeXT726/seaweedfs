@@ -23,6 +23,7 @@ import (
 
 var IsDebug *bool
 
+//command指令列表
 var commands = command.Commands
 
 var exitStatus = 0
@@ -44,22 +45,28 @@ func init() {
 }
 
 func main() {
+	//32G，保存运行log
 	glog.MaxSize = 1024 * 1024 * 32
+	//随机数函数的种子
 	rand.Seed(time.Now().UnixNano())
+	//TODO：：打印使用规范
 	flag.Usage = usage
 
+	//自动补全函数
 	if command.AutocompleteMain(commands) {
 		return
 	}
 
+	//解析参数
 	flag.Parse()
 
+	//剩余的没有提前注册的参数，无法被上面的parse解析
 	args := flag.Args()
 	if len(args) < 1 {
 		usage()
 	}
 
-	//weed help
+	//weed help的指令解析
 	if args[0] == "help" {
 		help(args[1:])
 		for _, cmd := range commands {
@@ -116,6 +123,8 @@ var helpTemplate = `{{if .Runnable}}Usage: weed {{.UsageLine}}
 `
 
 // tmpl executes the given template text on data, writing the result to w.
+//tmpl 在数据上执行给定的模板文本，将结果写入 w
+//TODO：template模块解析输出，需要具体学习
 func tmpl(w io.Writer, text string, data interface{}) {
 	t := template.New("top")
 	t.Funcs(template.FuncMap{"trim": strings.TrimSpace, "capitalize": capitalize})
