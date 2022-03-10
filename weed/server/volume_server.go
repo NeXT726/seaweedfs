@@ -1,11 +1,12 @@
 package weed_server
 
 import (
+	"net/http"
+	"sync"
+
 	"github.com/chrislusf/seaweedfs/weed/pb"
 	"github.com/chrislusf/seaweedfs/weed/pb/volume_server_pb"
 	"github.com/chrislusf/seaweedfs/weed/storage/types"
-	"net/http"
-	"sync"
 
 	"google.golang.org/grpc"
 
@@ -107,6 +108,7 @@ func NewVolumeServer(adminMux, publicMux *http.ServeMux, ip string,
 			adminMux.HandleFunc("/stats/disk", vs.guard.WhiteList(vs.statsDiskHandler))
 		*/
 	}
+	//这个处理函数是volume的http服务器应对读写的主要入口
 	adminMux.HandleFunc("/", vs.privateStoreHandler)
 	if publicMux != adminMux {
 		// separated admin and public port

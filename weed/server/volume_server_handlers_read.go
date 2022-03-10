@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/chrislusf/seaweedfs/weed/storage/types"
 	"io"
 	"mime"
 	"net/http"
@@ -15,6 +14,8 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
+
+	"github.com/chrislusf/seaweedfs/weed/storage/types"
 
 	"github.com/chrislusf/seaweedfs/weed/glog"
 	"github.com/chrislusf/seaweedfs/weed/images"
@@ -27,6 +28,7 @@ import (
 
 var fileNameEscaper = strings.NewReplacer(`\`, `\\`, `"`, `\"`)
 
+//volume对get、head请求的处理函数
 func (vs *VolumeServer) GetOrHeadHandler(w http.ResponseWriter, r *http.Request) {
 
 	stats.VolumeServerRequestCounter.WithLabelValues("get").Inc()
@@ -34,6 +36,7 @@ func (vs *VolumeServer) GetOrHeadHandler(w http.ResponseWriter, r *http.Request)
 	defer func() { stats.VolumeServerRequestHistogram.WithLabelValues("get").Observe(time.Since(start).Seconds()) }()
 
 	n := new(needle.Needle)
+	//解析URL，将URL请求的vid和fid返回写入
 	vid, fid, filename, ext, _ := parseURLPath(r.URL.Path)
 
 	if !vs.maybeCheckJwtAuthorization(r, vid, fid, false) {
@@ -41,12 +44,14 @@ func (vs *VolumeServer) GetOrHeadHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	//将vid转化为 uint32 的volumeID
 	volumeId, err := needle.NewVolumeId(vid)
 	if err != nil {
 		glog.V(2).Infof("parsing vid %s: %v", r.URL.Path, err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	//将fid中的needle ID 和 cookie分离出来存储在n中（也就是这个新建的needle结构体中）
 	err = n.ParsePath(fid)
 	if err != nil {
 		glog.V(2).Infof("parsing fid %s: %v", r.URL.Path, err)
@@ -56,6 +61,7 @@ func (vs *VolumeServer) GetOrHeadHandler(w http.ResponseWriter, r *http.Request)
 
 	// glog.V(4).Infoln("volume", volumeId, "reading", n)
 	hasVolume := vs.store.HasVolume(volumeId)
+	//DJLTODO：EcVolume是什么？
 	_, hasEcVolume := vs.store.FindEcVolume(volumeId)
 	if !hasVolume && !hasEcVolume {
 		if vs.ReadMode == "local" {

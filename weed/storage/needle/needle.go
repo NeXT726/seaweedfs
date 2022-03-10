@@ -123,11 +123,14 @@ func (n *Needle) ParsePath(fid string) (err error) {
 	if length <= CookieSize*2 {
 		return fmt.Errorf("Invalid fid: %s", fid)
 	}
+	//delta为fid里面‘_’后面的部分
 	delta := ""
+	//deltaIndex中为fid最后一个‘_’的index
 	deltaIndex := strings.LastIndex(fid, "_")
 	if deltaIndex > 0 {
 		fid, delta = fid[0:deltaIndex], fid[deltaIndex+1:]
 	}
+	//以Int的形式返回，已经经过了字符串到整型的转化
 	n.Id, n.Cookie, err = ParseNeedleIdCookie(fid)
 	if err != nil {
 		return err
@@ -142,6 +145,8 @@ func (n *Needle) ParsePath(fid string) (err error) {
 	return err
 }
 
+//cookie的长度是固定的：CookieSize*2 = 8
+//剩下的部分就是needleId，needleId的长度就不是固定的了
 func ParseNeedleIdCookie(key_hash_string string) (NeedleId, Cookie, error) {
 	if len(key_hash_string) <= CookieSize*2 {
 		return NeedleIdEmpty, 0, fmt.Errorf("KeyHash is too short.")
@@ -150,6 +155,7 @@ func ParseNeedleIdCookie(key_hash_string string) (NeedleId, Cookie, error) {
 		return NeedleIdEmpty, 0, fmt.Errorf("KeyHash is too long.")
 	}
 	split := len(key_hash_string) - CookieSize*2
+	//cookie的长度是固定的：CookieSize*2 = 8
 	needleId, err := ParseNeedleId(key_hash_string[:split])
 	if err != nil {
 		return NeedleIdEmpty, 0, fmt.Errorf("Parse needleId error: %v", err)

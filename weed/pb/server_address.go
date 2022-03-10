@@ -2,11 +2,12 @@ package pb
 
 import (
 	"fmt"
-	"github.com/chrislusf/seaweedfs/weed/pb/master_pb"
-	"github.com/chrislusf/seaweedfs/weed/util"
 	"net"
 	"strconv"
 	"strings"
+
+	"github.com/chrislusf/seaweedfs/weed/pb/master_pb"
+	"github.com/chrislusf/seaweedfs/weed/util"
 )
 
 type ServerAddress string
@@ -76,6 +77,7 @@ func (sa ServerAddress) ToGrpcAddress() string {
 	return ServerToGrpcAddress(string(sa))
 }
 
+//将之前以逗号分隔的ip列表切分开，创建新的切片一一保存
 func (sa ServerAddresses) ToAddresses() (addresses []ServerAddress) {
 	parts := strings.Split(string(sa), ",")
 	for _, address := range parts {

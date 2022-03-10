@@ -54,9 +54,11 @@ type Command struct {
 	UsageLine string
 
 	// Short is the short description shown in the 'go help' output.
+	//Short中保存的是help文档中的简短描述
 	Short string
 
 	// Long is the long message shown in the 'go help <this-command>' output.
+	//short中保存的是help文档的具体描述
 	Long string
 
 	// Flag is a set of flags specific to this command.

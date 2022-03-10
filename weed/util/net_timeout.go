@@ -83,6 +83,7 @@ func (c *Conn) Close() error {
 }
 
 func NewListener(addr string, timeout time.Duration) (net.Listener, error) {
+	//如果listen的addr参数为空，则listen将监听本地系统中所有的可用单播、任播地址。
 	l, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, err

@@ -2,7 +2,6 @@ package command
 
 import (
 	"fmt"
-	"github.com/chrislusf/seaweedfs/weed/storage/types"
 	"net/http"
 	httppprof "net/http/pprof"
 	"os"
@@ -10,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/chrislusf/seaweedfs/weed/storage/types"
 
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
@@ -24,7 +25,7 @@ import (
 
 	"github.com/chrislusf/seaweedfs/weed/glog"
 	"github.com/chrislusf/seaweedfs/weed/pb/volume_server_pb"
-	"github.com/chrislusf/seaweedfs/weed/server"
+	weed_server "github.com/chrislusf/seaweedfs/weed/server"
 	stats_collect "github.com/chrislusf/seaweedfs/weed/stats"
 	"github.com/chrislusf/seaweedfs/weed/storage"
 	"github.com/chrislusf/seaweedfs/weed/util"
@@ -194,6 +195,7 @@ func (v VolumeServerOptions) startVolumeServer(volumeFolders, maxVolumeCounts, v
 		glog.V(0).Infof("detected volume server ip address: %v", *v.ip)
 	}
 
+	//publicport默认和port相同，也就是不使用这个功能
 	if *v.publicPort == 0 {
 		*v.publicPort = *v.port
 	}
@@ -206,6 +208,7 @@ func (v VolumeServerOptions) startVolumeServer(volumeFolders, maxVolumeCounts, v
 
 	volumeMux := http.NewServeMux()
 	publicVolumeMux := volumeMux
+	//查看publicport和port是否相等，如果不同，则为publicport建立新的mux
 	if v.isSeparatedPublicPort() {
 		publicVolumeMux = http.NewServeMux()
 	}
@@ -218,6 +221,7 @@ func (v VolumeServerOptions) startVolumeServer(volumeFolders, maxVolumeCounts, v
 		volumeMux.HandleFunc("/debug/pprof/trace", httppprof.Trace)
 	}
 
+	//DJLTODO：这个needleMapKind是干啥用的？
 	volumeNeedleMapKind := storage.NeedleMapInMemory
 	switch *v.indexType {
 	case "leveldb":
@@ -364,7 +368,9 @@ func (v VolumeServerOptions) startClusterHttpService(handler http.Handler) httpd
 	}
 
 	httpDown := httpdown.HTTP{
+		//正常关闭连接的时间，超过这个时间后强行关闭连接
 		KillTimeout: 5 * time.Minute,
+		//在killtimeout之后等待多久放弃所有连接
 		StopTimeout: 5 * time.Minute,
 		CertFile:    certFile,
 		KeyFile:     keyFile}

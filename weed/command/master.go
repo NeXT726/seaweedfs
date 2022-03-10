@@ -54,7 +54,9 @@ func init() {
 	m.portGrpc = cmdMaster.Flag.Int("port.grpc", 0, "grpc listen port")
 	m.ip = cmdMaster.Flag.String("ip", util.DetectedHostAddress(), "master <ip>|<server> address, also used as identifier")
 	m.ipBind = cmdMaster.Flag.String("ip.bind", "", "ip address to bind to")
+	//默认把meta data保存在系统tmp目录下，在linux中若$TMPDIR非空则为$TMPDIR，否则为/tmp目录
 	m.metaFolder = cmdMaster.Flag.String("mdir", os.TempDir(), "data directory to store meta data")
+	//邻居节点：以逗号分隔的ip:port格式
 	m.peers = cmdMaster.Flag.String("peers", "", "all master nodes in comma separated ip:port list, example: 127.0.0.1:9093,127.0.0.1:9094,127.0.0.1:9095")
 	m.volumeSizeLimitMB = cmdMaster.Flag.Uint("volumeSizeLimitMB", 30*1000, "Master stops directing writes to oversized volumes.")
 	m.volumePreallocate = cmdMaster.Flag.Bool("volumePreallocate", false, "Preallocate disk space for volumes.")
@@ -89,9 +91,12 @@ var (
 
 func runMaster(cmd *Command, args []string) bool {
 
+	//读取security.toml配置文件
 	util.LoadConfiguration("security", false)
+	//读取master.toml配置文件
 	util.LoadConfiguration("master", false)
 
+	//CPU、memory 配置信息
 	grace.SetupProfiling(*masterCpuProfile, *masterMemProfile)
 
 	//创建文件夹存储元数据（meta data）
@@ -103,15 +108,19 @@ func runMaster(cmd *Command, args []string) bool {
 		glog.Fatalf("Check Meta Folder (-mdir) Writable %s : %s", *m.metaFolder, err)
 	}
 
+	//白名单，默认为空
 	var masterWhiteList []string
 	if *m.whiteList != "" {
 		masterWhiteList = strings.Split(*m.whiteList, ",")
 	}
+	//volume size 限制
 	if *m.volumeSizeLimitMB > util.VolumeSizeLimitGB*1000 {
 		glog.Fatalf("volumeSizeLimitMB should be smaller than 30000")
 	}
 
+	//启动一个协程进行状态监测
 	go stats_collect.StartMetricsServer(*m.metricsHttpPort)
+	//启动Master的主函数
 	startMaster(m, masterWhiteList)
 
 	return true
@@ -126,10 +135,14 @@ func startMaster(masterOption MasterOptions, masterWhiteList []string) {
 		*masterOption.portGrpc = 10000 + *masterOption.port
 	}
 
+	//用string保存masterAddress，用[]string切片保存peer
 	myMasterAddress, peers := checkPeers(*masterOption.ip, *masterOption.port, *masterOption.portGrpc, *masterOption.peers)
 
+	//请求路由和分发函数
 	r := mux.NewRouter()
 	ms := weed_server.NewMasterServer(r, masterOption.toMasterOption(masterWhiteList), peers)
+	//监听请求的ip地址
+	//默认情况下，一开始 ipBind 确实是空的，后面运行过程中会自动补成当前机器的ip
 	listeningAddress := util.JoinHostPort(*masterOption.ipBind, *masterOption.port)
 	glog.V(0).Infof("Start Seaweed Master %s at %s", util.Version(), listeningAddress)
 	masterListener, e := util.NewListener(listeningAddress, 0)
@@ -143,9 +156,11 @@ func startMaster(masterOption MasterOptions, masterWhiteList []string) {
 		glog.Fatalf("please verify %s is writable, see https://github.com/chrislusf/seaweedfs/issues/717: %s", *masterOption.metaFolder, err)
 	}
 	ms.SetRaftServer(raftServer)
+	//对url为 masterIP/cluster/status 的Get请求执行raftServer.StatusHandler函数
 	r.HandleFunc("/cluster/status", raftServer.StatusHandler).Methods("GET")
 	// starting grpc server
 	grpcPort := *masterOption.portGrpc
+	//ipbind为空，则监听系统的所有ip地址
 	grpcL, err := util.NewListener(util.JoinHostPort(*masterOption.ipBind, grpcPort), 0)
 	if err != nil {
 		glog.Fatalf("master failed to listen on grpc port %d: %v", grpcPort, err)
@@ -178,6 +193,7 @@ func startMaster(masterOption MasterOptions, masterWhiteList []string) {
 func checkPeers(masterIp string, masterPort int, masterGrpcPort int, peers string) (masterAddress pb.ServerAddress, cleanedPeers []pb.ServerAddress) {
 	glog.V(0).Infof("current: %s:%d peers:%s", masterIp, masterPort, peers)
 	masterAddress = pb.NewServerAddress(masterIp, masterPort, masterGrpcPort)
+	//将之前以逗号分隔的peer列表切分开，创建新的切片一一保存
 	cleanedPeers = pb.ServerAddresses(peers).ToAddresses()
 
 	hasSelf := false
@@ -188,9 +204,11 @@ func checkPeers(masterIp string, masterPort int, masterGrpcPort int, peers strin
 		}
 	}
 
+	//自身也会被加在peer列表中
 	if !hasSelf {
 		cleanedPeers = append(cleanedPeers, masterAddress)
 	}
+	//master的数量只能是奇数
 	if len(cleanedPeers)%2 == 0 {
 		glog.Fatalf("Only odd number of masters are supported: %+v", cleanedPeers)
 	}

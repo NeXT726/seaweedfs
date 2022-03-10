@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	xhttp "github.com/chrislusf/seaweedfs/weed/s3api/http"
 	"io"
 	"io/fs"
 	"mime/multipart"
@@ -15,6 +14,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	xhttp "github.com/chrislusf/seaweedfs/weed/s3api/http"
 
 	"google.golang.org/grpc"
 
@@ -202,13 +203,17 @@ func parseURLPath(path string) (vid, fid, filename, ext string, isVolumeIdOnly b
 			fid = fid[0:dotIndex]
 		}
 	default:
+		//最后一个‘/’的偏移
 		sepIndex := strings.LastIndex(path, "/")
+		//最后一个‘,’的偏移
 		commaIndex := strings.LastIndex(path[sepIndex:], ",")
 		if commaIndex <= 0 {
 			vid, isVolumeIdOnly = path[sepIndex+1:], true
 			return
 		}
+		//最后一个‘.’的偏移
 		dotIndex := strings.LastIndex(path[sepIndex:], ".")
+		//例如 3,01637037d6 可以通过下面的切片取出 vid = 3; fid = 01637037d6;
 		vid = path[sepIndex+1 : commaIndex]
 		fid = path[commaIndex+1:]
 		ext = ""

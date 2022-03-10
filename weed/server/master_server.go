@@ -2,7 +2,6 @@ package weed_server
 
 import (
 	"fmt"
-	"github.com/chrislusf/seaweedfs/weed/stats"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -11,6 +10,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/chrislusf/seaweedfs/weed/stats"
 
 	"github.com/chrislusf/seaweedfs/weed/cluster"
 	"github.com/chrislusf/seaweedfs/weed/pb"
@@ -140,6 +141,7 @@ func NewMasterServer(r *mux.Router, option *MasterOption, peers []pb.ServerAddre
 			r.HandleFunc("/stats/counter", ms.guard.WhiteList(statsCounterHandler))
 			r.HandleFunc("/stats/memory", ms.guard.WhiteList(statsMemoryHandler))
 		*/
+		//DJLTODO：这里的{fileId}是正则匹配还是什么意思？
 		r.HandleFunc("/{fileId}", ms.redirectHandler)
 	}
 
