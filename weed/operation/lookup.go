@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/chrislusf/seaweedfs/weed/pb"
-	"google.golang.org/grpc"
 	"math/rand"
 	"strings"
 	"time"
+
+	"github.com/chrislusf/seaweedfs/weed/pb"
+	"google.golang.org/grpc"
 
 	"github.com/chrislusf/seaweedfs/weed/pb/master_pb"
 )
@@ -53,6 +54,7 @@ func LookupFileId(masterFn GetMasterFn, grpcDialOption grpc.DialOption, fileId s
 	return "http://" + lookup.Locations[rand.Intn(len(lookup.Locations))].Url + "/" + fileId, lookup.Jwt, nil
 }
 
+// LookupVolumeIds 函数可以一次性查找多个vid，所以需要这个LookupVolumeId函数将vid转化成切片传入
 func LookupVolumeId(masterFn GetMasterFn, grpcDialOption grpc.DialOption, vid string) (*LookupResult, error) {
 	results, err := LookupVolumeIds(masterFn, grpcDialOption, []string{vid})
 	return results[vid], err
@@ -65,10 +67,13 @@ func LookupVolumeIds(masterFn GetMasterFn, grpcDialOption grpc.DialOption, vids 
 
 	//check vid cache first
 	for _, vid := range vids {
+		//查找vid
 		locations, cacheErr := vc.Get(vid)
 		if cacheErr == nil {
+			//找到了，则把映射关系加入ret
 			ret[vid] = &LookupResult{VolumeOrFileId: vid, Locations: locations}
 		} else {
+			//没找到
 			unknown_vids = append(unknown_vids, vid)
 		}
 	}
@@ -79,17 +84,21 @@ func LookupVolumeIds(masterFn GetMasterFn, grpcDialOption grpc.DialOption, vids 
 
 	//only query unknown_vids
 
+	//这个函数，先找到与master已有的连接（或者新建立的），并创建client与master相连
+	//再使用第四个参数定义的func对刚创建的SeaweedClient进行操作
 	err := WithMasterServerClient(false, masterFn(), grpcDialOption, func(masterClient master_pb.SeaweedClient) error {
 
 		req := &master_pb.LookupVolumeRequest{
 			VolumeOrFileIds: unknown_vids,
 		}
+		//调用Seaweed Client定义的LookupVolume函数查找volume_id对应的
 		resp, grpcErr := masterClient.LookupVolume(context.Background(), req)
 		if grpcErr != nil {
 			return grpcErr
 		}
 
 		//set newly checked vids to cache
+		//Volume Location的关键信息是URL、publicURL、GRPCport
 		for _, vidLocations := range resp.VolumeIdLocations {
 			var locations []Location
 			for _, loc := range vidLocations.Locations {
@@ -102,6 +111,7 @@ func LookupVolumeIds(masterFn GetMasterFn, grpcDialOption grpc.DialOption, vids 
 			if vidLocations.Error != "" {
 				vc.Set(vidLocations.VolumeOrFileId, locations, 10*time.Minute)
 			}
+			//保存在Volumeid到location的映射中
 			ret[vidLocations.VolumeOrFileId] = &LookupResult{
 				VolumeOrFileId: vidLocations.VolumeOrFileId,
 				Locations:      locations,

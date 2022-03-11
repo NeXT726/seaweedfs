@@ -3,14 +3,15 @@ package pb
 import (
 	"context"
 	"fmt"
-	"github.com/chrislusf/seaweedfs/weed/glog"
-	"github.com/chrislusf/seaweedfs/weed/util"
 	"math/rand"
 	"net/http"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/chrislusf/seaweedfs/weed/glog"
+	"github.com/chrislusf/seaweedfs/weed/util"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
@@ -83,6 +84,7 @@ func GrpcDial(ctx context.Context, address string, opts ...grpc.DialOption) (*gr
 			options = append(options, opt)
 		}
 	}
+	//与address服务器建立grpc连接
 	return grpc.DialContext(ctx, address, options...)
 }
 
@@ -91,12 +93,15 @@ func getOrCreateConnection(address string, opts ...grpc.DialOption) (*versionedG
 	grpcClientsLock.Lock()
 	defer grpcClientsLock.Unlock()
 
+	//通过保存连接状态的map尝试寻找已有连接
 	existingConnection, found := grpcClients[address]
 	if found {
+		//存在已有连接则直接返回
 		return existingConnection, nil
 	}
 
 	ctx := context.Background()
+	//与addres的服务器建立grpc连接
 	grpcConnection, err := GrpcDial(ctx, address, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("fail to dial %s: %v", address, err)
@@ -116,6 +121,7 @@ func getOrCreateConnection(address string, opts ...grpc.DialOption) (*versionedG
 func WithGrpcClient(streamingMode bool, fn func(*grpc.ClientConn) error, address string, opts ...grpc.DialOption) error {
 
 	if !streamingMode {
+		//查看是否已有grpc连接，先用已有的grpc连接，否则建立新的连接
 		vgc, err := getOrCreateConnection(address, opts...)
 		if err != nil {
 			return fmt.Errorf("getOrCreateConnection %s: %v", address, err)

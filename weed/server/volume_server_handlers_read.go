@@ -69,6 +69,8 @@ func (vs *VolumeServer) GetOrHeadHandler(w http.ResponseWriter, r *http.Request)
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
+		//通过GRPC连接master，请求VolumeId所在的location
+		//会对曾经请求过的location进行缓存，当缓存中已有映射，则不需要连接后请求
 		lookupResult, err := operation.LookupVolumeId(vs.GetMaster, vs.grpcDialOption, volumeId.String())
 		glog.V(2).Infoln("volume", volumeId, "found on", lookupResult, "error", err)
 		if err != nil || len(lookupResult.Locations) <= 0 {
