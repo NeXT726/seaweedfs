@@ -63,6 +63,8 @@ func (vs *VolumeServer) GetOrHeadHandler(w http.ResponseWriter, r *http.Request)
 	hasVolume := vs.store.HasVolume(volumeId)
 	//DJLTODO：EcVolume是什么？
 	_, hasEcVolume := vs.store.FindEcVolume(volumeId)
+
+	//当前服务器中没有该volume，需要去向master询问该volume的url，并通过proxy或redirect的方式完成该请求
 	if !hasVolume && !hasEcVolume {
 		if vs.ReadMode == "local" {
 			glog.V(0).Infoln("volume is not local:", err, r.URL.Path)
@@ -80,7 +82,9 @@ func (vs *VolumeServer) GetOrHeadHandler(w http.ResponseWriter, r *http.Request)
 		}
 		if vs.ReadMode == "proxy" {
 			// proxy client request to target server
+			// 当前volume服务器代理发送请求到上面定位到的volume服务器，并将其返回的response发送给用户
 			u, _ := url.Parse(util.NormalizeUrl(lookupResult.Locations[0].Url))
+			//只需要更改一下请求的目的地址即可（源地址在发包时自动更改），其他的请求信息维持不变转发
 			r.URL.Host = u.Host
 			r.URL.Scheme = u.Scheme
 			request, err := http.NewRequest("GET", r.URL.String(), nil)
@@ -89,12 +93,14 @@ func (vs *VolumeServer) GetOrHeadHandler(w http.ResponseWriter, r *http.Request)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
+			//header中的选项也要复制进去
 			for k, vv := range r.Header {
 				for _, v := range vv {
 					request.Header.Add(k, v)
 				}
 			}
 
+			//发送请求包并收到回复response
 			response, err := client.Do(request)
 			if err != nil {
 				glog.V(0).Infof("request remote url %s: %v", r.URL.String(), err)
@@ -108,11 +114,13 @@ func (vs *VolumeServer) GetOrHeadHandler(w http.ResponseWriter, r *http.Request)
 					w.Header().Add(k, v)
 				}
 			}
+			//将回复的response包转发给客户端即可
 			w.WriteHeader(response.StatusCode)
 			io.Copy(w, response.Body)
 			return
 		} else {
 			// redirect
+			//回复客户端，让他去向新的volume location发送请求读取文件
 			u, _ := url.Parse(util.NormalizeUrl(lookupResult.Locations[0].PublicUrl))
 			u.Path = fmt.Sprintf("%s/%s,%s", u.Path, vid, fid)
 			arg := url.Values{}
@@ -124,6 +132,8 @@ func (vs *VolumeServer) GetOrHeadHandler(w http.ResponseWriter, r *http.Request)
 			return
 		}
 	}
+
+	//下面是当我要读取的volume在本地的情况，也就是真正的数据读取过程
 	cookie := n.Cookie
 
 	readOption := &storage.ReadOption{

@@ -17,11 +17,13 @@ func (v *Volume) readNeedle(n *needle.Needle, readOption *ReadOption, onReadSize
 	v.dataFileAccessLock.RLock()
 	defer v.dataFileAccessLock.RUnlock()
 
+	//通过needleid得到的是needle在volume中的offset和data size
 	nv, ok := v.nm.Get(n.Id)
 	if !ok || nv.Offset.IsZero() {
 		return -1, ErrorNotFound
 	}
 	readSize := nv.Size
+	//用nv的Size（data 部分的大小）判断是否已被删除
 	if readSize.IsDeleted() {
 		if readOption != nil && readOption.ReadDeleted && readSize != TombstoneFileSize {
 			glog.V(3).Infof("reading deleted %s", n.String())
@@ -30,12 +32,15 @@ func (v *Volume) readNeedle(n *needle.Needle, readOption *ReadOption, onReadSize
 			return -1, ErrorDeleted
 		}
 	}
+	//如果data size为0，直接返回空值
 	if readSize == 0 {
 		return 0, nil
 	}
 	if onReadSizeFn != nil {
 		onReadSizeFn(readSize)
 	}
+	//offset中是以8bit为单位存储的4个byte，共32bit
+	//并且对offset中保存的地址需要左移NeedlePaddingSize（default 8）位，起对齐填充的作用
 	err := n.ReadData(v.DataBackend, nv.Offset.ToActualOffset(), readSize, v.Version())
 	if err == needle.ErrorSizeMismatch && OffsetSize == 4 {
 		err = n.ReadData(v.DataBackend, nv.Offset.ToActualOffset()+int64(MaxPossibleVolumeSize), readSize, v.Version())

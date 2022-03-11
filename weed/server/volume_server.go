@@ -74,11 +74,12 @@ func NewVolumeServer(adminMux, publicMux *http.ServeMux, ip string,
 	readExpiresAfterSec := v.GetInt("jwt.signing.read.expires_after_seconds")
 
 	vs := &VolumeServer{
-		pulseSeconds:                  pulseSeconds,
-		dataCenter:                    dataCenter,
-		rack:                          rack,
-		needleMapKind:                 needleMapKind,
-		FixJpgOrientation:             fixJpgOrientation,
+		pulseSeconds:      pulseSeconds,
+		dataCenter:        dataCenter,
+		rack:              rack,
+		needleMapKind:     needleMapKind,
+		FixJpgOrientation: fixJpgOrientation,
+		//readMode 默认是proxy
 		ReadMode:                      readMode,
 		grpcDialOption:                security.LoadClientTLS(util.GetViper(), "grpc.volume"),
 		compactionBytePerSecond:       int64(compactionMBPerSecond) * 1024 * 1024,

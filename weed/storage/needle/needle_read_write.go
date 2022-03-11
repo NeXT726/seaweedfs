@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
+	"math"
+	"sync"
+
 	"github.com/chrislusf/seaweedfs/weed/glog"
 	"github.com/chrislusf/seaweedfs/weed/storage/backend"
 	. "github.com/chrislusf/seaweedfs/weed/storage/types"
 	"github.com/chrislusf/seaweedfs/weed/util"
-	"io"
-	"math"
-	"sync"
 )
 
 const (
@@ -195,10 +196,12 @@ func WriteNeedleBlob(w backend.BackendStorageFile, dataSlice []byte, size Size, 
 
 func ReadNeedleBlob(r backend.BackendStorageFile, offset int64, size Size, version Version) (dataSlice []byte, err error) {
 
+	//ActualSize = needle header 16 + size + 不同version会有的不同的校验码等
 	dataSize := GetActualSize(size, version)
 	dataSlice = make([]byte, int(dataSize))
 
 	var n int
+	//将needle从r中的偏移offset处读取dataSize长度的数据到dataSlice
 	n, err = r.ReadAt(dataSlice, offset)
 	if err != nil && int64(n) == dataSize {
 		err = nil
