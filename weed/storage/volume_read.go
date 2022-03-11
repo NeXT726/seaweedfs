@@ -41,6 +41,7 @@ func (v *Volume) readNeedle(n *needle.Needle, readOption *ReadOption, onReadSize
 	}
 	//offset中是以8bit为单位存储的4个byte，共32bit
 	//并且对offset中保存的地址需要左移NeedlePaddingSize（default 8）位，起对齐填充的作用
+	//从volume中读取数据保存在needle，也就是这个n对象中
 	err := n.ReadData(v.DataBackend, nv.Offset.ToActualOffset(), readSize, v.Version())
 	if err == needle.ErrorSizeMismatch && OffsetSize == 4 {
 		err = n.ReadData(v.DataBackend, nv.Offset.ToActualOffset()+int64(MaxPossibleVolumeSize), readSize, v.Version())
@@ -49,6 +50,7 @@ func (v *Volume) readNeedle(n *needle.Needle, readOption *ReadOption, onReadSize
 	if err != nil {
 		return 0, err
 	}
+	//实际的文件数据大小
 	bytesRead := len(n.Data)
 	if !n.HasTtl() {
 		return bytesRead, nil
