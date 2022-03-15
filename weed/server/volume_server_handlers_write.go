@@ -57,6 +57,7 @@ func (vs *VolumeServer) PostHandler(w http.ResponseWriter, r *http.Request) {
 
 	//ret用于向客户端发response使用
 	ret := operation.UploadResult{}
+	// 使用协程并发向副本服务器发送replicate请求包
 	isUnchanged, writeError := topology.ReplicatedWrite(vs.GetMaster, vs.grpcDialOption, vs.store, volumeId, reqNeedle, r)
 
 	// http 204 status code does not allow body

@@ -4,10 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/chrislusf/seaweedfs/weed/glog"
-	"github.com/chrislusf/seaweedfs/weed/pb/filer_pb"
-	"github.com/chrislusf/seaweedfs/weed/security"
-	"github.com/chrislusf/seaweedfs/weed/util"
 	"io"
 	"mime"
 	"mime/multipart"
@@ -16,6 +12,11 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/chrislusf/seaweedfs/weed/glog"
+	"github.com/chrislusf/seaweedfs/weed/pb/filer_pb"
+	"github.com/chrislusf/seaweedfs/weed/security"
+	"github.com/chrislusf/seaweedfs/weed/util"
 )
 
 type UploadOption struct {
@@ -116,6 +117,7 @@ func retriedUploadData(data []byte, option *UploadOption) (uploadResult *UploadR
 func doUploadData(data []byte, option *UploadOption) (uploadResult *UploadResult, err error) {
 	contentIsGzipped := option.IsInputCompressed
 	shouldGzipNow := false
+	//判断是否需要压缩
 	if !option.IsInputCompressed {
 		if option.MimeType == "" {
 			option.MimeType = http.DetectContentType(data)
@@ -137,6 +139,8 @@ func doUploadData(data []byte, option *UploadOption) (uploadResult *UploadResult
 
 	// gzip if possible
 	// this could be double copying
+	// 进行压缩
+	// 或对已压缩文件进行信息提取
 	clearDataLen = len(data)
 	clearData := data
 	if shouldGzipNow && !option.Cipher {
@@ -187,6 +191,7 @@ func doUploadData(data []byte, option *UploadOption) (uploadResult *UploadResult
 		uploadResult.Size = uint32(clearDataLen)
 	} else {
 		// upload data
+		// 将请求打包成http请求发送
 		uploadResult, err = upload_content(func(w io.Writer) (err error) {
 			_, err = w.Write(data)
 			return
@@ -257,6 +262,7 @@ func upload_content(fillBufferFunction func(w io.Writer) error, originalDataSize
 		req.Header.Set("Authorization", "BEARER "+string(option.Jwt))
 	}
 	// print("+")
+	// http发包函数
 	resp, post_err := HttpClient.Do(req)
 	if post_err != nil {
 		if strings.Contains(post_err.Error(), "connection reset by peer") ||

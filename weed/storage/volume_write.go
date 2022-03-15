@@ -118,12 +118,14 @@ func (v *Volume) writeNeedle2(n *needle.Needle, checkCookie bool, fsync bool) (o
 	}
 
 	if !fsync {
+		// append写needle --> 写needle_map
 		return v.syncWrite(n, checkCookie)
 	} else {
 		asyncRequest := needle.NewAsyncRequest(n, true)
 		// using len(n.Data) here instead of n.Size before n.Size is populated in n.Append()
 		asyncRequest.ActualSize = needle.GetActualSize(Size(len(n.Data)), v.Version())
 
+		//发送一个异步请求，但等待他的完成，从而成为一个同步操作
 		v.asyncRequestAppend(asyncRequest)
 		offset, _, isUnchanged, err = asyncRequest.WaitComplete()
 
@@ -140,6 +142,7 @@ func (v *Volume) doWriteRequest(n *needle.Needle, checkCookie bool) (offset uint
 	}
 
 	// check whether existing needle cookie matches
+	//nv中保存Needle ID， offset， size
 	nv, ok := v.nm.Get(n.Id)
 	if ok {
 		existingNeedle, _, _, existingNeedleReadErr := needle.ReadNeedleHeader(v.DataBackend, v.Version(), nv.Offset.ToActualOffset())
@@ -161,6 +164,7 @@ func (v *Volume) doWriteRequest(n *needle.Needle, checkCookie bool) (offset uint
 	}
 
 	// append to dat file
+	// 以append 的方式将新文件写入volume中
 	n.AppendAtNs = uint64(time.Now().UnixNano())
 	offset, size, _, err = n.Append(v.DataBackend, v.Version())
 	v.checkReadWriteError(err)
@@ -170,6 +174,8 @@ func (v *Volume) doWriteRequest(n *needle.Needle, checkCookie bool) (offset uint
 	v.lastAppendAtNs = n.AppendAtNs
 
 	// add to needle map
+	// 如果新数据的偏移比旧数据的偏移大，说明新数据应当成功写入
+	// 所以将新数据的信息写入needle_map中
 	if !ok || uint64(nv.Offset.ToActualOffset()) < offset {
 		if err = v.nm.Put(n.Id, ToOffset(int64(offset)), n.Size); err != nil {
 			glog.V(4).Infof("failed to save in needle map %d: %v", n.Id, err)

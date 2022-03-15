@@ -38,6 +38,7 @@ var bufPool = sync.Pool{
 	},
 }
 
+//将Needle的信息写入writeBytes中
 func (n *Needle) prepareWriteBuffer(version Version, writeBytes *bytes.Buffer) (Size, int64, error) {
 	writeBytes.Reset()
 	switch version {
@@ -156,6 +157,7 @@ func (n *Needle) Append(w backend.BackendStorageFile, version Version) (offset u
 	bytesBuffer := bufPool.Get().(*bytes.Buffer)
 	defer bufPool.Put(bytesBuffer)
 
+	// 将needle的信息写入bytesBuffer中，然后将bytesBuffer的内容写入volume的offset后
 	size, actualSize, err = n.prepareWriteBuffer(version, bytesBuffer)
 
 	if err == nil {

@@ -53,6 +53,7 @@ func ReplicatedWrite(masterFn operation.GetMasterFn, grpcDialOption grpc.DialOpt
 		}
 	}
 
+	// 当有副本存在时，将请求发送给他的副本，在副本中也要进行写入
 	if len(remoteLocations) > 0 { //send to other replica locations
 		if err = DistributedOperation(remoteLocations, func(location operation.Location) error {
 			u := url.URL{
@@ -60,6 +61,7 @@ func ReplicatedWrite(masterFn operation.GetMasterFn, grpcDialOption grpc.DialOpt
 				Host:   location.Url,
 				Path:   r.URL.Path,
 			}
+			//发送给副本的请求类型是replicate
 			q := url.Values{
 				"type": {"replicate"},
 				"ttl":  {n.Ttl.String()},
@@ -95,6 +97,7 @@ func ReplicatedWrite(masterFn operation.GetMasterFn, grpcDialOption grpc.DialOpt
 				PairMap:           pairMap,
 				Jwt:               jwt,
 			}
+			// 发http请求包
 			_, err := operation.UploadData(n.Data, uploadOption)
 			return err
 		}); err != nil {
@@ -137,6 +140,8 @@ func ReplicatedDelete(masterFn operation.GetMasterFn, grpcDialOption grpc.DialOp
 
 type DistributedOperationResult map[string]error
 
+// 对分布式的多个机器的返回结果的error进行append并返回
+// 当所有机器都没有返回error时该函数返回nil
 func (dr DistributedOperationResult) Error() error {
 	var errs []string
 	for k, v := range dr {
@@ -155,6 +160,8 @@ type RemoteResult struct {
 	Error error
 }
 
+// chan用法的典型
+// 对locations中的所有location都执行op函数，并对op返回的error进行整合后返回
 func DistributedOperation(locations []operation.Location, op func(location operation.Location) error) error {
 	length := len(locations)
 	results := make(chan RemoteResult)
