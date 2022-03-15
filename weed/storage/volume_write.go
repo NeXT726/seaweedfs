@@ -31,6 +31,7 @@ func (v *Volume) checkReadWriteError(err error) {
 
 // isFileUnchanged checks whether this needle to write is same as last one.
 // It requires serialized access in the same volume.
+// 从磁盘中读取旧Neeedle，比较是否被更改后写入
 func (v *Volume) isFileUnchanged(n *needle.Needle) bool {
 	if v.Ttl.String() != "" {
 		return false
@@ -91,6 +92,7 @@ func (v *Volume) asyncRequestAppend(request *needle.AsyncRequest) {
 	v.asyncRequestsChan <- request
 }
 
+//将needle异步写入volume
 func (v *Volume) syncWrite(n *needle.Needle, checkCookie bool) (offset uint64, size Size, isUnchanged bool, err error) {
 	// glog.V(4).Infof("writing needle %s", needle.NewFileIdFromNeedle(v.Id, n).String())
 	actualSize := needle.GetActualSize(Size(len(n.Data)), v.Version())
@@ -98,6 +100,7 @@ func (v *Volume) syncWrite(n *needle.Needle, checkCookie bool) (offset uint64, s
 	v.dataFileAccessLock.Lock()
 	defer v.dataFileAccessLock.Unlock()
 
+	//判断volume的空间是否足够存放新的数据
 	if MaxPossibleVolumeSize < v.nm.ContentSize()+uint64(actualSize) {
 		err = fmt.Errorf("volume size limit %d exceeded! current size is %d", MaxPossibleVolumeSize, v.nm.ContentSize())
 		return
@@ -108,6 +111,7 @@ func (v *Volume) syncWrite(n *needle.Needle, checkCookie bool) (offset uint64, s
 
 func (v *Volume) writeNeedle2(n *needle.Needle, checkCookie bool, fsync bool) (offset uint64, size Size, isUnchanged bool, err error) {
 	// glog.V(4).Infof("writing needle %s", needle.NewFileIdFromNeedle(v.Id, n).String())
+	// 当我们把没有ttl的needle传入有ttl的volume中时，设置needle.ttl = volume.ttl
 	if n.Ttl == needle.EMPTY_TTL && v.Ttl != needle.EMPTY_TTL {
 		n.SetHasTtl()
 		n.Ttl = v.Ttl

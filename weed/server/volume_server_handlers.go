@@ -48,7 +48,6 @@ func (vs *VolumeServer) privateStoreHandler(w http.ResponseWriter, r *http.Reque
 		stats.DeleteRequest()
 		vs.guard.WhiteList(vs.DeleteHandler)(w, r)
 	case "PUT", "POST":
-
 		// wait until in flight data is less than the limit
 		contentLength := getContentLength(r)
 		vs.inFlightUploadDataLimitCond.L.Lock()
@@ -65,6 +64,7 @@ func (vs *VolumeServer) privateStoreHandler(w http.ResponseWriter, r *http.Reque
 
 		// processs uploads
 		stats.WriteRequest()
+		//通过传入func类型，对func增加安全性（白名单）检查的功能！
 		vs.guard.WhiteList(vs.PostHandler)(w, r)
 
 	case "OPTIONS":

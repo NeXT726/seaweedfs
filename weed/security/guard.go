@@ -63,6 +63,7 @@ func NewGuard(whiteList []string, signingKey string, expiresAfterSec int, readSi
 }
 
 func (g *Guard) WhiteList(f http.HandlerFunc) http.HandlerFunc {
+	//如果没有开启白名单验证，则跳过检查直接使用f函数
 	if !g.isWriteActive {
 		//if no security needed, just skip all checking
 		return f
@@ -91,6 +92,7 @@ func GetActualRemoteHost(r *http.Request) (host string, err error) {
 }
 
 func (g *Guard) checkWhiteList(w http.ResponseWriter, r *http.Request) error {
+	//当白名单列表为空时，任何请求都可通过验证
 	if len(g.whiteList) == 0 {
 		return nil
 	}

@@ -43,15 +43,19 @@ func (vs *VolumeServer) PostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//从池中取一个bytes.buffer，并转化为*bytes.Buffer类型。
+	//bytesBuffer用于保存请求中的data部分
 	bytesBuffer := bufPool.Get().(*bytes.Buffer)
 	defer bufPool.Put(bytesBuffer)
 
+	//将请求的信息与数据提取出来存入reqNeedle中
 	reqNeedle, originalSize, contentMd5, ne := needle.CreateNeedleFromRequest(r, vs.FixJpgOrientation, vs.fileSizeLimitBytes, bytesBuffer)
 	if ne != nil {
 		writeJsonError(w, r, http.StatusBadRequest, ne)
 		return
 	}
 
+	//ret用于向客户端发response使用
 	ret := operation.UploadResult{}
 	isUnchanged, writeError := topology.ReplicatedWrite(vs.GetMaster, vs.grpcDialOption, vs.store, volumeId, reqNeedle, r)
 

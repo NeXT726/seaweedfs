@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"google.golang.org/grpc"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+
+	"google.golang.org/grpc"
 
 	"github.com/chrislusf/seaweedfs/weed/glog"
 	"github.com/chrislusf/seaweedfs/weed/operation"
@@ -28,6 +29,7 @@ func ReplicatedWrite(masterFn operation.GetMasterFn, grpcDialOption grpc.DialOpt
 	var remoteLocations []operation.Location
 	if r.FormValue("type") != "replicate" {
 		// this is the initial request
+		// 将replication所在的location放在remoteLocations中
 		remoteLocations, err = getWritableRemoteReplications(s, grpcDialOption, volumeId, masterFn)
 		if err != nil {
 			glog.V(0).Infoln(err)
@@ -41,6 +43,7 @@ func ReplicatedWrite(masterFn operation.GetMasterFn, grpcDialOption grpc.DialOpt
 		fsync = true
 	}
 
+	//从本地的store中查找vid
 	if s.GetVolume(volumeId) != nil {
 		isUnchanged, err = s.WriteVolumeNeedle(volumeId, n, true, fsync)
 		if err != nil {
@@ -177,6 +180,7 @@ func getWritableRemoteReplications(s *storage.Store, grpcDialOption grpc.DialOpt
 	}
 
 	// not on local store, or has replications
+	//对同一个volumeID可以查到好几个volume的location
 	lookupResult, lookupErr := operation.LookupVolumeId(masterFn, grpcDialOption, volumeId.String())
 	if lookupErr == nil {
 		selfUrl := util.JoinHostPort(s.Ip, s.Port)
@@ -190,6 +194,7 @@ func getWritableRemoteReplications(s *storage.Store, grpcDialOption grpc.DialOpt
 		return
 	}
 
+	//查看是否所有replication的location都找到了
 	if v != nil {
 		// has one local and has remote replications
 		copyCount := v.ReplicaPlacement.GetCopyCount()

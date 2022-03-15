@@ -27,12 +27,13 @@ type Needle struct {
 	Id     NeedleId `comment:"needle id"`
 	Size   Size     `comment:"sum of DataSize,Data,NameSize,Name,MimeSize,Mime"`
 
-	DataSize     uint32 `comment:"Data size"` //version2
-	Data         []byte `comment:"The actual file data"`
-	Flags        byte   `comment:"boolean flags"` //version2
-	NameSize     uint8  //version2
-	Name         []byte `comment:"maximum 255 characters"` //version2
-	MimeSize     uint8  //version2
+	DataSize uint32 `comment:"Data size"` //version2
+	Data     []byte `comment:"The actual file data"`
+	Flags    byte   `comment:"boolean flags"` //version2
+	NameSize uint8  //version2
+	Name     []byte `comment:"maximum 255 characters"` //version2
+	MimeSize uint8  //version2
+	//Mime表示文件类型
 	Mime         []byte `comment:"maximum 255 characters"` //version2
 	PairsSize    uint16 //version2
 	Pairs        []byte `comment:"additional name value pairs, json format, maximum 64kB"`
@@ -51,6 +52,7 @@ func (n *Needle) String() (str string) {
 
 func CreateNeedleFromRequest(r *http.Request, fixJpgOrientation bool, sizeLimit int64, bytesBuffer *bytes.Buffer) (n *Needle, originalSize int, contentMd5 string, e error) {
 	n = new(Needle)
+	//从http request中提取信息（如data、filename等等），保存在pu中
 	pu, e := ParseUpload(r, sizeLimit, bytesBuffer)
 	if e != nil {
 		return

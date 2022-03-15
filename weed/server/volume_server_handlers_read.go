@@ -175,7 +175,9 @@ func (vs *VolumeServer) GetOrHeadHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	if n.LastModified != 0 {
+		//回复中携带最后一次更改的时间
 		w.Header().Set("Last-Modified", time.Unix(int64(n.LastModified), 0).UTC().Format(http.TimeFormat))
+		//从某个时间后是否被更改
 		if r.Header.Get("If-Modified-Since") != "" {
 			if t, parseError := time.Parse(http.TimeFormat, r.Header.Get("If-Modified-Since")); parseError == nil {
 				if t.Unix() >= int64(n.LastModified) {
@@ -185,6 +187,7 @@ func (vs *VolumeServer) GetOrHeadHandler(w http.ResponseWriter, r *http.Request)
 			}
 		}
 	}
+	//将请求携带的Checksum与Needle中的Checksum比较，判断返回是否被修改过
 	if inm := r.Header.Get("If-None-Match"); inm == "\""+n.Etag()+"\"" {
 		w.WriteHeader(http.StatusNotModified)
 		return

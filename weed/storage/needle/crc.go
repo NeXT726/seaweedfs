@@ -25,6 +25,7 @@ func (c CRC) Value() uint32 {
 	return uint32(c>>15|c<<17) + 0xa282ead8
 }
 
+//将Needle的checksum转化为string返回
 func (n *Needle) Etag() string {
 	bits := make([]byte, 4)
 	util.Uint32toBytes(bits, uint32(n.Checksum))

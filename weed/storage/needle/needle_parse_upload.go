@@ -37,7 +37,11 @@ func ParseUpload(r *http.Request, sizeLimit int64, bytesBuffer *bytes.Buffer) (p
 	bytesBuffer.Reset()
 	pu = &ParsedUpload{bytesBuffer: bytesBuffer}
 	pu.PairMap = make(map[string]string)
+	//Header中保存请求中的选项字段，不区分大小写，第一个字母和连字符‘-’后的第一个字母大写，其余全小写。
+	//部分如Host等字段会被单独提取，不会放在Header中
+	//Header为一个 string --> []string 的map
 	for k, v := range r.Header {
+		//以 Seaweed- 开头的选项被存放在pu.PairMap中
 		if len(v) > 0 && strings.HasPrefix(k, PairNamePrefix) {
 			pu.PairMap[k] = v[0]
 		}
@@ -59,6 +63,7 @@ func ParseUpload(r *http.Request, sizeLimit int64, bytesBuffer *bytes.Buffer) (p
 	pu.UncompressedData = pu.Data
 	// println("received data", len(pu.Data), "isGzipped", pu.IsGzipped, "mime", pu.MimeType, "name", pu.FileName)
 	if pu.IsGzipped {
+		//unzipped中保存着未压缩数据
 		if unzipped, e := util.DecompressData(pu.Data); e == nil {
 			pu.OriginalDataSize = len(unzipped)
 			pu.UncompressedData = unzipped
@@ -67,6 +72,7 @@ func ParseUpload(r *http.Request, sizeLimit int64, bytesBuffer *bytes.Buffer) (p
 	} else {
 		ext := filepath.Base(pu.FileName)
 		mimeType := pu.MimeType
+		//如果http请求中没有携带数据类型，则通过下面的函数解析数据的类型
 		if mimeType == "" {
 			mimeType = http.DetectContentType(pu.Data)
 		}
@@ -86,7 +92,7 @@ func ParseUpload(r *http.Request, sizeLimit int64, bytesBuffer *bytes.Buffer) (p
 		}
 	}
 
-	// md5
+	// 设置该文件的md5
 	h := md5.New()
 	h.Write(pu.UncompressedData)
 	pu.ContentMd5 = base64.StdEncoding.EncodeToString(h.Sum(nil))
