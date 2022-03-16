@@ -124,7 +124,7 @@ var helpTemplate = `{{if .Runnable}}Usage: weed {{.UsageLine}}
 
 // tmpl executes the given template text on data, writing the result to w.
 //tmpl 在数据上执行给定的模板文本，将结果写入 w
-//TODO：template模块解析输出，需要具体学习
+//DJLTODO：template模块解析输出，需要具体学习
 func tmpl(w io.Writer, text string, data interface{}) {
 	t := template.New("top")
 	t.Funcs(template.FuncMap{"trim": strings.TrimSpace, "capitalize": capitalize})
