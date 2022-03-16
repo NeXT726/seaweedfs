@@ -64,6 +64,9 @@ func volumeIdFromFileName(filename string) (needle.VolumeId, string, error) {
 	return 0, "", fmt.Errorf("file is not a volume: %s", filename)
 }
 
+// volume文件名结构为： collection_vid.idx/collection_vid.vif
+// 以'_'为分隔符把collection和vid解析出来即可
+// vid要通过转化，把string转化为uint返回
 func parseCollectionVolumeId(base string) (collection string, vid needle.VolumeId, err error) {
 	i := strings.LastIndex(base, "_")
 	if i > 0 {
@@ -96,12 +99,14 @@ func (l *DiskLocation) loadExistingVolume(dirEntry os.DirEntry, needleMapKind Ne
 
 	// skip if ec volumes exists
 	if skipIfEcVolumesExists {
+		//ec volumes文件以.ecx结尾
 		if util.FileExists(l.Directory + "/" + volumeName + ".ecx") {
 			return false
 		}
 	}
 
 	// check for incomplete volume
+	// 当存在.note结尾的文件，就是说该volume是不完整的，所以就都删除掉（其中，.note中记录的一些log
 	noteFile := l.Directory + "/" + volumeName + ".note"
 	if util.FileExists(noteFile) {
 		note, _ := os.ReadFile(noteFile)
@@ -112,6 +117,7 @@ func (l *DiskLocation) loadExistingVolume(dirEntry os.DirEntry, needleMapKind Ne
 	}
 
 	// parse out collection, volume id
+	// 从volume的文件名中把collection和vid解析出来
 	vid, collection, err := volumeIdFromFileName(basename)
 	if err != nil {
 		glog.Warningf("get volume id failed, %s, err : %s", volumeName, err)
@@ -128,12 +134,14 @@ func (l *DiskLocation) loadExistingVolume(dirEntry os.DirEntry, needleMapKind Ne
 	}
 
 	// load the volume
+	// DJLTODO
 	v, e := NewVolume(l.Directory, l.IdxDirectory, collection, vid, needleMapKind, nil, nil, 0, 0)
 	if e != nil {
 		glog.V(0).Infof("new volume %s error %s", volumeName, e)
 		return false
 	}
 
+	//把这个已有的volume存放在DiskLocation的volume映射关系中
 	l.SetVolume(vid, v)
 
 	size, _, _ := v.FileStat()
@@ -147,8 +155,10 @@ func (l *DiskLocation) concurrentLoadingVolumes(needleMapKind NeedleMapKind, con
 	task_queue := make(chan os.DirEntry, 10*concurrency)
 	go func() {
 		foundVolumeNames := make(map[string]bool)
+		//对location目录下的所有项，找到.idx/.vif后缀的文件，作为本来已经存在的volume保存
 		if dirEntries, err := os.ReadDir(l.Directory); err == nil {
 			for _, entry := range dirEntries {
+				//对有.idx和.vif后缀的文件视为已有的volume，并去掉这四个字符的后缀后返回volumename
 				volumeName := getValidVolumeName(entry.Name())
 				if volumeName == "" {
 					continue
