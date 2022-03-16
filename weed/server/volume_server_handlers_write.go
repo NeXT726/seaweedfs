@@ -31,6 +31,7 @@ func (vs *VolumeServer) PostHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	vid, fid, _, _, _ := parseURLPath(r.URL.Path)
+	//将string类型的vid转化为uint类型的volumeId
 	volumeId, ve := needle.NewVolumeId(vid)
 	if ve != nil {
 		glog.V(0).Infoln("NewVolumeId error:", ve)

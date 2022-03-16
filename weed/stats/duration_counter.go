@@ -28,12 +28,17 @@ func (rrc *RoundRobinCounter) Add(index int, val int64) {
 	}
 	for rrc.LastIndex != index {
 		rrc.LastIndex = (rrc.LastIndex + 1) % len(rrc.Values)
+		// 这里为什么清零了？
+		// 为了获得 当前一秒、一分、一天等 的数据
+		// 此时 LastIndex和index 之间的数据应当是上一个循环（比如一分钟前该秒）中的数据，旧数据应当清零
 		rrc.Values[rrc.LastIndex] = 0
 		rrc.Counts[rrc.LastIndex] = 0
 	}
 	rrc.Values[index] += val
 	rrc.Counts[index]++
 }
+
+//返回一个单位时间的最大成功操作数
 func (rrc *RoundRobinCounter) Max() (max int64) {
 	for _, val := range rrc.Values {
 		if max < val {
@@ -42,12 +47,16 @@ func (rrc *RoundRobinCounter) Max() (max int64) {
 	}
 	return
 }
+
+//返回所有单位时间的操作数之和
 func (rrc *RoundRobinCounter) Count() (cnt int64) {
 	for _, c := range rrc.Counts {
 		cnt += c
 	}
 	return
 }
+
+//返回所有单位时间的成功操作数之和
 func (rrc *RoundRobinCounter) Sum() (sum int64) {
 	for _, val := range rrc.Values {
 		sum += val
@@ -55,6 +64,7 @@ func (rrc *RoundRobinCounter) Sum() (sum int64) {
 	return
 }
 
+//将所有的单位时间内的数值append成一个切片返回
 func (rrc *RoundRobinCounter) ToList() (ret []int64) {
 	index := rrc.LastIndex
 	step := len(rrc.Values)
@@ -86,6 +96,7 @@ func NewDurationCounter() *DurationCounter {
 }
 
 // Add is for cumulative counts
+// 为每个单位时间计数
 func (sc *DurationCounter) Add(tv *TimedValue) {
 	sc.MinuteCounter.Add(tv.t.Second(), tv.val)
 	sc.HourCounter.Add(tv.t.Minute(), tv.val)
