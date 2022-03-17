@@ -136,6 +136,7 @@ func runVolume(cmd *Command, args []string) bool {
 func (v VolumeServerOptions) startVolumeServer(volumeFolders, maxVolumeCounts, volumeWhiteListOption string, minFreeSpaces []util.MinFreeSpace) {
 
 	// Set multiple folders and each folder's max volume count limit'
+	// 将volume 文件夹选项配置在v的folders成员中
 	v.folders = strings.Split(volumeFolders, ",")
 	for _, folder := range v.folders {
 		if err := util.TestFolderWritable(util.ResolvePath(folder)); err != nil {
@@ -221,7 +222,8 @@ func (v VolumeServerOptions) startVolumeServer(volumeFolders, maxVolumeCounts, v
 		volumeMux.HandleFunc("/debug/pprof/trace", httppprof.Trace)
 	}
 
-	//DJLTODO：这个needleMapKind是干啥用的？
+	//这个needleMapKind是干啥用的？
+	//应该是指Needle Map的存储方式，默认是Memory存储，应该是只将needlemap保存在内存中
 	volumeNeedleMapKind := storage.NeedleMapInMemory
 	switch *v.indexType {
 	case "leveldb":
@@ -263,6 +265,7 @@ func (v VolumeServerOptions) startVolumeServer(volumeFolders, maxVolumeCounts, v
 	}
 
 	// starting the cluster http server
+	// 启动集群http服务
 	clusterHttpServer := v.startClusterHttpService(volumeMux)
 
 	stopChan := make(chan bool)

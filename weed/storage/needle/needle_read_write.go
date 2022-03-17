@@ -283,7 +283,7 @@ func (n *Needle) readNeedleDataVersion2(bytes []byte) (err error) {
 		//然后是data
 		n.Data = bytes[index : index+int(n.DataSize)]
 		index = index + int(n.DataSize)
-		//DJLTODO：Flags？？1B
+		//Flags？？1B
 		n.Flags = bytes[index]
 		index = index + 1
 	}
@@ -305,7 +305,8 @@ func (n *Needle) readNeedleDataVersion2(bytes []byte) (err error) {
 		if int(n.MimeSize)+index > lenBytes {
 			return fmt.Errorf("index out of range %d", 3)
 		}
-		//DJLTODO：然后是Mime？？
+		//然后是Mime？
+		//Mime是指媒体类型，也就是通常所说的文件类型，不过是通过Mime标准定义的一种文件类型标准
 		n.Mime = bytes[index : index+int(n.MimeSize)]
 		index = index + int(n.MimeSize)
 	}

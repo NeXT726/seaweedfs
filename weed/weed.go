@@ -57,10 +57,10 @@ func main() {
 		return
 	}
 
-	//解析参数
+	//解析参数，这里不解析具体的参数，只是把Args提取出来
 	flag.Parse()
 
-	//剩余的没有提前注册的参数，无法被上面的parse解析
+	//所有的Args被提取出来放到args中
 	args := flag.Args()
 	if len(args) < 1 {
 		usage()
@@ -83,6 +83,7 @@ func main() {
 		if cmd.Name() == args[0] && cmd.Run != nil {
 			cmd.Flag.Usage = func() { cmd.Usage() }
 			cmd.Flag.Parse(args[1:])
+			//这里才是真正的参数解析
 			args = cmd.Flag.Args()
 			IsDebug = cmd.IsDebug
 			//执行该指令的函数

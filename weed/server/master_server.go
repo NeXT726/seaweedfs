@@ -141,7 +141,8 @@ func NewMasterServer(r *mux.Router, option *MasterOption, peers []pb.ServerAddre
 			r.HandleFunc("/stats/counter", ms.guard.WhiteList(statsCounterHandler))
 			r.HandleFunc("/stats/memory", ms.guard.WhiteList(statsMemoryHandler))
 		*/
-		//DJLTODO：这里的{fileId}是正则匹配还是什么意思？
+		//这里的{fileId}是正则匹配还是什么意思？
+		//这里不是正则匹配，应该是将/后的内容视为fileId传入handler函数中，这个应该是HandleFunc自己定义的语法
 		r.HandleFunc("/{fileId}", ms.redirectHandler)
 	}
 

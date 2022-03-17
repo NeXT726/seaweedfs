@@ -61,7 +61,8 @@ func (vs *VolumeServer) GetOrHeadHandler(w http.ResponseWriter, r *http.Request)
 
 	// glog.V(4).Infoln("volume", volumeId, "reading", n)
 	hasVolume := vs.store.HasVolume(volumeId)
-	//DJLTODO：EcVolume是什么？
+	//EcVolume是什么？
+	//ECVolume应该是开启了EC纠错码的volume
 	_, hasEcVolume := vs.store.FindEcVolume(volumeId)
 
 	//当前服务器中没有该volume，需要去向master询问该volume的url，并通过proxy或redirect的方式完成该请求
