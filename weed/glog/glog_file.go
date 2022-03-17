@@ -21,13 +21,14 @@ package glog
 import (
 	"errors"
 	"fmt"
-	flag "github.com/chrislusf/seaweedfs/weed/util/fla9"
 	"os"
 	"os/user"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
+
+	flag "github.com/chrislusf/seaweedfs/weed/util/fla9"
 )
 
 // MaxSize is the maximum size of a log file in bytes.
@@ -54,6 +55,8 @@ var (
 	userName = "unknownuser"
 )
 
+//从系统中获取host和username写入全局变量
+//其中Hostname返回的是host的名字，通常也就是localhost
 func init() {
 	h, err := os.Hostname()
 	if err == nil {

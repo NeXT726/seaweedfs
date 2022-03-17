@@ -77,6 +77,7 @@ func (c *Command) Name() string {
 	return name
 }
 
+// 当某条指令被错误使用时，通过Usage()提示正确用法并退出
 func (c *Command) Usage() {
 	fmt.Fprintf(os.Stderr, "Example: weed %s\n", c.UsageLine)
 	fmt.Fprintf(os.Stderr, "Default Usage:\n")
